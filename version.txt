@@ -1,0 +1,37 @@
+
+
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Stmt1512410953000",
+            "Effect": "Allow",
+            "Action": [
+                "s3:Get*",
+                "s3:Put*",
+                "s3:Delete*",
+                "s3:List*"
+            ],
+            "Resource": [
+                "arn:aws:s3:::dv-mac-src-scannertransfer-us-east-1*",
+                "arn:aws:s3:::dv-mac-app-scannertransfer-us-east-1*"
+            ]
+        },
+        {
+            "Sid": "listingbuckets",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListAllMyBuckets",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": "arn:aws:s3:::*"
+        }
+    ]
+}
+
+
+bucket in dev dev-ip-att-us-east-1
+
+
+
