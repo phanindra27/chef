@@ -29,3 +29,76 @@
         }
     ]
 }
+
+{
+	"Version": "2012-10-17",
+	"Statement": [{
+			"Sid": "Listingalls3buckets",
+			"Effect": "Allow",
+			"Action": [
+				"s3:ListAllMyBuckets",
+				"s3:HeadBucket",
+				"s3:GetBucketLocation"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "Listingparticualarresource",
+			"Effect": "Allow",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::qa-mac-att-3935-us-east-1"
+		},
+		{
+			"Sid": "Accesstofolderpath",
+			"Effect": "Allow",
+			"Action": [
+				"s3:PutObject",
+				"s3:GetObject",
+				"s3:ListObject",
+                "s3:DeleteObject"
+			],
+			"Resource": "arn:aws:s3:::qa-ip-5943-us-east-1/dl/identity/*"
+		}, {
+			"Effect": "Allow",
+			"Action": [
+				"kms:Decrypt",
+				"kms:Encrypt",
+				"kms:Generatedatakey*",
+				"kms:ReEncrypt*",
+				"kms:Describekey*"
+			],
+			"Resource": "arn:aws:kms:us-east-1:393566551251:key/966f43f4-b0f3-4b6f-8464-57418f772b4a"
+		}, {
+			"Effect": "Allow",
+			"Action": [
+				"kms:ListKeys",
+				"kms:ListAliases"
+			],
+			"Resource": "*"
+		}
+	]
+}
+
+aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-kms-key-id arn:aws:kms:us-east-1:594349222397:key/f95d3565-174b-4194-94ce-440d0f1a8c88 ( you kms key arn ) -- profile     <profilename>
+
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::594349222397:user/user/svc-dv-ip-att-dl-account"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {}
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
