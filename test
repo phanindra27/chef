@@ -102,3 +102,54 @@ aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-k
     }
   ]
 }
+
+
+--------------
+
+{
+    "Version": "2012-10-17",
+    "Id": "PutObjPolicy",
+    "Statement": [
+        {
+            "Sid": "SSLOnlyAccess",
+            "Effect": "Deny",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::dv-ip-att-5943-us-east-1",
+                "arn:aws:s3:::dv-ip-att-5943-us-east-1/*"
+            ],
+            "Condition": {
+                "Bool": {
+                    "aws:SecureTransport": "false"
+                }
+            }
+        },
+        {
+            "Sid": "DenyIncorrectEncryptionKey",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::dv-ip-att-5943-us-east-1/*",
+            "Condition": {
+                "StringNotEquals": {
+                    "s3:x-amz-server-side-encryption-aws-kms-key-id": "arn:aws:kms:us-east-1:594349222397:key/c72d9a33-57f4-4fd3-a6a1-bfa8c9836ea6"
+                }
+            }
+        },
+        {
+            "Sid": "DenyUnEncryptedObjectUploads",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::dv-ip-att-5943-us-east-1/*",
+            "Condition": {
+                "Null": {
+                    "s3:x-amz-server-side-encryption": "true"
+                }
+            }
+        }
+    ]
+}
