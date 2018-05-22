@@ -118,8 +118,8 @@ aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-k
             },
             "Action": "s3:*",
             "Resource": [
-                "arn:aws:s3:::dv-ip-att-5943-us-east-1",
-                "arn:aws:s3:::dv-ip-att-5943-us-east-1/*"
+                "arn:aws:s3:::somerandombucket123",
+                "arn:aws:s3:::somerandombucket123/*"
             ],
             "Condition": {
                 "Bool": {
@@ -132,10 +132,10 @@ aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-k
             "Effect": "Deny",
             "Principal": "*",
             "Action": "s3:PutObject",
-            "Resource": "arn:aws:s3:::dv-ip-att-5943-us-east-1/*",
+            "Resource": "arn:aws:s3:::somerandombucket123/*",
             "Condition": {
                 "StringNotEquals": {
-                    "s3:x-amz-server-side-encryption-aws-kms-key-id": "arn:aws:kms:us-east-1:594349222397:key/c72d9a33-57f4-4fd3-a6a1-bfa8c9836ea6"
+                    "s3:x-amz-server-side-encryption-aws-kms-key-id": "arn:aws:kms:us-east-1:990300515209:key/c0b339a2-8513-4d1f-a8b9-804603e633b1"
                 }
             }
         },
@@ -144,7 +144,7 @@ aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-k
             "Effect": "Deny",
             "Principal": "*",
             "Action": "s3:PutObject",
-            "Resource": "arn:aws:s3:::dv-ip-att-5943-us-east-1/*",
+            "Resource": "arn:aws:s3:::somerandombucket123/*",
             "Condition": {
                 "Null": {
                     "s3:x-amz-server-side-encryption": "true"
@@ -153,3 +153,11 @@ aws s3 cp sample.txt s3://your bucket/dl/your data library --sse aws:kms --sse-k
         }
     ]
 }
+
+
+----------
+
+aws s3 rm s3://somerandombucket123/1/account/sample.txt --profile s3test
+
+
+aws s3 cp sample.txt s3://somerandombucket123/1/account/ --sse aws:kms --sse-kms-key-id arn:aws:kms:us-east-1:990300515209:key/c0b339a2-8513-4d1f-a8b9-804603e633b1 --profile s3test
