@@ -1,0 +1,50 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAllAccessToBelowActions",
+            "Action": [
+                "ec2:Describe*",
+                "ec2:IsLaunchTemplateResource",
+                "ec2:RebootInstances",
+                "ec2:StopInstances",
+                "ec2:TerminateInstances",
+                "ec2:StartInstances",
+                "ec2:AttachVolume",
+                "ec2:DetachVolume",
+                "ec2:CreateSecurityGroup",
+                "ec2:CreateKeyPair",
+                "ec2:AuthorizeSecurityGroupIngress"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": [
+                "arn:aws:ec2:us-east-1:*:network-interface/*",
+                "arn:aws:ec2:us-east-1:*:volume/*",
+                "arn:aws:ec2:us-east-1:*:key-pair/*",
+                "arn:aws:ec2:us-east-1:*:security-group/*",
+                "arn:aws:ec2:us-east-1:*:subnet/*",
+                "arn:aws:ec2:us-east-1:*:image/ami-14c5486b"
+            ]
+        },
+        {
+            "Sid": "OnlyAllowCertainInstanceTypesToBeCreated",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:RunInstances"
+            ],
+            "Resource": "arn:aws:ec2:us-east-1:*:instance/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:InstanceType": [
+                        "t2.micro"
+                    ]
+                }
+            }
+        }
+    ]
+}
