@@ -1,0 +1,240 @@
+####policy to restrict ec2 instances
+policy name --- IAM_Policy_For_Tag_Based_EC2_Restrictions_v01
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "ec2:*"
+            ],
+            "Resource": [
+                "*"
+            ],
+            "Effect": "Allow",
+            "Sid": "AllowEveryEC2ActionOnAllResourse"
+        },
+        {
+            "Condition": {
+                "StringNotEquals": {
+                    "ec2:ResourceTag/PrincipalId": "${aws:userid}"
+                }
+            },
+            "Action": [
+                "ec2:RebootInstances",
+                "ec2:TerminateInstances",
+                "ec2:StartInstances",
+                "ec2:StopInstances"
+            ],
+            "Resource": "arn:aws:ec2:*:*:instance/*",
+            "Effect": "Deny",
+            "Sid": "RestrictRebootStartStopTerminateToInstanceOwner"
+        },
+        {
+            "Action": [
+                "ec2:DeleteTags",
+                "ec2:CreateTags"
+            ],
+            "Resource": "arn:aws:ec2:*:*:instance/*",
+            "Effect": "Deny",
+            "Sid": "RestrictUsersFromCreatingDeletingTags"
+        }
+    ]
+}
+
+policy ---   AmazonEC2ReadOnlyAccess
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:Describe*",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:Describe*",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:ListMetrics",
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "autoscaling:Describe*",
+      "Resource": "*"
+    }
+  ]
+}
+
+
+Group name ----- IAM_Group_To_Manage_EC2_Instances_v01
+
+ Lambda fucntion name -----IAM_Group_To_Manage_EC2_Instances_v01
+ 
+ descripton -- This function tags EC2 Resources in response to Cloudwatch Events.
+ 
+ 
+ 
+ from __future__ import print_function
+import json
+import boto3
+import logging
+import time
+import datetime
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    #logger.info('Event: ' + str(event))
+    #print('Received event: ' + json.dumps(event, indent=2))
+
+    ids = []
+
+    try:
+        region = event['region']
+        detail = event['detail']
+        eventname = detail['eventName']
+        arn = detail['userIdentity']['arn']
+        principal = detail['userIdentity']['principalId']
+        userType = detail['userIdentity']['type']
+
+        if userType == 'IAMUser':
+            user = detail['userIdentity']['userName']
+
+        else:
+            user = principal.split(':')[1]
+
+
+        logger.info('principalId: ' + str(principal))
+        logger.info('region: ' + str(region))
+        logger.info('eventName: ' + str(eventname))
+        logger.info('detail: ' + str(detail))
+
+        if not detail['responseElements']:
+            logger.warning('Not responseElements found')
+            if detail['errorCode']:
+                logger.error('errorCode: ' + detail['errorCode'])
+            if detail['errorMessage']:
+                logger.error('errorMessage: ' + detail['errorMessage'])
+            return False
+
+        ec2 = boto3.resource('ec2')
+
+        if eventname == 'CreateVolume':
+            ids.append(detail['responseElements']['volumeId'])
+            logger.info(ids)
+
+        elif eventname == 'RunInstances':
+            items = detail['responseElements']['instancesSet']['items']
+            for item in items:
+                ids.append(item['instanceId'])
+            logger.info(ids)
+            logger.info('number of instances: ' + str(len(ids)))
+
+            base = ec2.instances.filter(InstanceIds=ids)
+
+            #loop through the instances
+            for instance in base:
+                for vol in instance.volumes.all():
+                    ids.append(vol.id)
+                for eni in instance.network_interfaces:
+                    ids.append(eni.id)
+
+        elif eventname == 'CreateImage':
+            ids.append(detail['responseElements']['imageId'])
+            logger.info(ids)
+
+        elif eventname == 'CreateSnapshot':
+            ids.append(detail['responseElements']['snapshotId'])
+            logger.info(ids)
+        else:
+            logger.warning('Not supported action')
+
+        if ids:
+            for resourceid in ids:
+                print('Tagging resource ' + resourceid)
+            ec2.create_tags(Resources=ids, Tags=[{'Key': 'Owner', 'Value': user}, {'Key': 'PrincipalId', 'Value': principal}])
+
+        logger.info(' Remaining time (ms): ' + str(context.get_remaining_time_in_millis()) + '\n')
+        return True
+    except Exception as e:
+        logger.error('Something went wrong: ' + str(e))
+        return False
+		
+	
+		cloudwatch rule name ----- CloudWatch_EC2_Event_Rule_v01
+		description --- Trigger a Lambda function anytime a new EC2 resource is created (EC2 instance, EBS volume, EBS Snapshot or AMI)
+			cloudwatch rules----
+		
+		{
+  "detail-type": [
+    "AWS API Call via CloudTrail"
+  ],
+  "detail": {
+    "eventSource": [
+      "ec2.amazonaws.com"
+    ],
+    "eventName": [
+      "CreateVolume",
+      "RunInstances",
+      "CreateImage",
+      "CreateSnapshot"
+    ]
+  }
+}
+
+
+role name -----Role_For_Lambda_To_Auto_Tag_v01
+trust relation
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+inline policy name ----InLine_Policy_For_Lambda_To_Create_Tags_v01
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "cloudtrail:LookupEvents"
+            ],
+            "Resource": [
+                "*"
+            ],
+            "Effect": "Allow",
+            "Sid": "Stmt1458923097000"
+        },
+        {
+            "Action": [
+                "ec2:CreateTags",
+                "ec2:Describe*",
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": [
+                "*"
+            ],
+            "Effect": "Allow",
+            "Sid": "Stmt1458923121000"
+        }
+    ]
+}
